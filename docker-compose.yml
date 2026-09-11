@@ -1,5 +1,5 @@
-# Orquestracao do ambiente: API + banco, em rede propria, com volume e variaveis.
-# Um unico compose serve os tres ambientes; o que muda vem do --env-file.
+# API e banco, em rede propria, com volume e variaveis de ambiente.
+# Um compose unico atende os tres ambientes. O que muda vem do --env-file:
 #   dev     -> docker compose --env-file .env up -d --build
 #   staging -> docker compose --env-file .env.staging -p energia-staging up -d
 #   prod    -> docker compose --env-file .env.production -p energia-prod up -d
@@ -24,8 +24,8 @@ services:
       start_period: 30s
 
   api:
-    # image = tag publicada no GHCR quando o pipeline faz o deploy;
-    # build  = usado apenas no ambiente local (docker compose up --build).
+    # image: tag publicada no GHCR, usada quando o pipeline faz o deploy.
+    # build: usado no ambiente local, com docker compose up --build.
     image: ${API_IMAGE:-energiaapi:local}
     build:
       context: .
@@ -44,8 +44,9 @@ services:
     networks:
       - energia-net
     restart: unless-stopped
-    # ponytail: sem healthcheck de container aqui - a imagem aspnet:8.0 nao traz
-    # curl/wget. Quem valida a subida e o scripts/smoke-test.sh (host/pipeline).
+    # Sem healthcheck de container aqui: a imagem aspnet:8.0 nao traz curl nem wget,
+    # e instalar um pacote so pra isso engorda a imagem. Quem valida a subida e o
+    # scripts/smoke-test.sh, rodando de fora (na maquina ou no pipeline).
 
 volumes:
   mssql-data:

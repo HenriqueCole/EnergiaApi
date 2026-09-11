@@ -20,7 +20,7 @@ builder.Services.AddScoped<IConsumoService, ConsumoService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 
 var jwtKey = builder.Configuration["Jwt:Key"]
-    ?? throw new InvalidOperationException("Jwt:Key nao configurada (use a variavel de ambiente Jwt__Key).");
+    ?? throw new InvalidOperationException("Jwt:Key nao configurada. Defina a variavel de ambiente Jwt__Key.");
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {

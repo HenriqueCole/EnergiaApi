@@ -62,7 +62,7 @@ public class ControllersTests : IClassFixture<ApiFactory>
     [Fact]
     public async Task GetHealth_RetornaStatus200()
     {
-        // Endpoint usado pelo smoke test do pipeline de CI/CD.
+        // O smoke test do pipeline depende deste endpoint.
         var response = await _client.GetAsync("/health");
         response.EnsureSuccessStatusCode();
     }

@@ -1,24 +1,24 @@
-EVIDENCIAS LOCAIS - EnergiaApi (staging + producao rodando lado a lado)
-Gerado em: 11/09/2026 09:23
+Evidencias locais do EnergiaApi, com staging e producao rodando ao mesmo tempo.
+Capturado em 11/09/2026 as 09:40.
 
 $ docker compose --env-file .env.staging    -p energia-staging up -d --build
 $ docker compose --env-file .env.production -p energia-prod    up -d --build
 
 $ docker ps --filter name=energia --format "table {{.Names}}	{{.Ports}}	{{.Status}}"
 NAMES                     PORTS                                           STATUS
-energia-prod-api-1        0.0.0.0:8082->8080/tcp, [::]:8082->8080/tcp     Up 22 seconds
-energia-prod-mssql-1      0.0.0.0:14332->1433/tcp, [::]:14332->1433/tcp   Up 27 seconds (healthy)
-energia-staging-api-1     0.0.0.0:8081->8080/tcp, [::]:8081->8080/tcp     Up 55 seconds
-energia-staging-mssql-1   0.0.0.0:14331->1433/tcp, [::]:14331->1433/tcp   Up About a minute (healthy)
+energia-prod-api-1        0.0.0.0:8082->8080/tcp, [::]:8082->8080/tcp     Up 17 minutes
+energia-prod-mssql-1      0.0.0.0:14332->1433/tcp, [::]:14332->1433/tcp   Up 17 minutes (healthy)
+energia-staging-api-1     0.0.0.0:8081->8080/tcp, [::]:8081->8080/tcp     Up 17 minutes
+energia-staging-mssql-1   0.0.0.0:14331->1433/tcp, [::]:14331->1433/tcp   Up 17 minutes (healthy)
 
 $ docker images energiaapi
 IMAGE              ID             DISK USAGE   CONTENT SIZE   EXTRA
 energiaapi:local   ede2cce21658        375MB         94.9MB   U    
 
-$ curl -s localhost:8081/health   # STAGING
+$ curl -s localhost:8081/health   # staging
 {"status":"ok","ambiente":"Staging","versao":"local"}
 
-$ curl -s localhost:8082/health   # PRODUCAO
+$ curl -s localhost:8082/health   # producao
 {"status":"ok","ambiente":"Production","versao":"local"}
 
 
@@ -32,31 +32,31 @@ NETWORK ID     NAME                          DRIVER    SCOPE
 4ca72f135a6e   energia-prod_energia-net      bridge    local
 e4d8aa239935   energia-staging_energia-net   bridge    local
 
-$ ./scripts/smoke-test.sh http://localhost:8081
+$ bash scripts/smoke-test.sh http://localhost:8081
 ==> Aguardando http://localhost:8081/health (timeout 180s)
     API respondeu em 0s
 ==> 1/4 GET /health
 {"status":"ok","ambiente":"Staging","versao":"local"}
 ==> 2/4 POST /api/auth/login
     token obtido (349 caracteres)
-==> 3/4 GET /api/consumos (valida acesso ao banco)
+==> 3/4 GET /api/consumos (prova que a API alcanca o banco)
     ok
-==> 4/4 GET /api/alertas (valida rota protegida por JWT)
+==> 4/4 GET /api/alertas (prova que o JWT funciona)
     ok
 ==> SMOKE TEST PASSOU em http://localhost:8081
 
-$ ./scripts/smoke-test.sh http://localhost:8082
+$ bash scripts/smoke-test.sh http://localhost:8082
 ==> Aguardando http://localhost:8082/health (timeout 180s)
     API respondeu em 0s
 ==> 1/4 GET /health
 {"status":"ok","ambiente":"Production","versao":"local"}
 ==> 2/4 POST /api/auth/login
     token obtido (349 caracteres)
-==> 3/4 GET /api/consumos (valida acesso ao banco)
+==> 3/4 GET /api/consumos (prova que a API alcanca o banco)
     ok
-==> 4/4 GET /api/alertas (valida rota protegida por JWT)
+==> 4/4 GET /api/alertas (prova que o JWT funciona)
     ok
 ==> SMOKE TEST PASSOU em http://localhost:8082
 
 $ dotnet test
-Passed!  - Failed:     0, Passed:     6, Skipped:     0, Total:     6, Duration: 586 ms - EnergiaApi.Tests.dll (net8.0)
+Passed!  - Failed:     0, Passed:     6, Skipped:     0, Total:     6, Duration: 597 ms - EnergiaApi.Tests.dll (net8.0)

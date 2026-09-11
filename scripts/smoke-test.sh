@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Valida um deploy: espera a API subir e exercita os endpoints principais.
-# Uso: ./scripts/smoke-test.sh <base-url>   (ex: http://localhost:8081)
+# Testa um deploy: espera a API subir e bate nos endpoints principais.
+# Uso: bash scripts/smoke-test.sh <base-url>   (ex: http://localhost:8081)
 set -euo pipefail
 
 BASE="${1:-http://localhost:8080}"
@@ -26,11 +26,11 @@ TOKEN=$(curl -fsS -X POST "$BASE/api/auth/login" \
 [ -n "$TOKEN" ] || { echo "FALHA: login nao devolveu token"; exit 1; }
 echo "    token obtido (${#TOKEN} caracteres)"
 
-echo "==> 3/4 GET /api/consumos (valida acesso ao banco)"
+echo "==> 3/4 GET /api/consumos (prova que a API alcanca o banco)"
 curl -fsS "$BASE/api/consumos?page=1&pageSize=5" >/dev/null
 echo "    ok"
 
-echo "==> 4/4 GET /api/alertas (valida rota protegida por JWT)"
+echo "==> 4/4 GET /api/alertas (prova que o JWT funciona)"
 curl -fsS "$BASE/api/alertas?page=1&pageSize=5" -H "Authorization: Bearer $TOKEN" >/dev/null
 echo "    ok"
 
