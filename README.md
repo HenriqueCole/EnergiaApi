@@ -207,7 +207,12 @@ responde, o que evita aquele erro de migration em container que sobe mais rápid
 
 ## Prints do funcionamento
 
-Troque os caminhos abaixo pelas suas capturas. Sugestão de pasta: `docs/prints/`.
+As execuções do pipeline ficam em
+[github.com/HenriqueCole/EnergiaApi/actions](https://github.com/HenriqueCole/EnergiaApi/actions).
+Uma execução completa, com os quatro jobs verdes, está em
+[actions/runs/34600183571](https://github.com/HenriqueCole/EnergiaApi/actions/runs/34600183571).
+
+Para os prints, troque os caminhos abaixo pelas suas capturas. Sugestão de pasta: `docs/prints/`.
 
 | Evidência | O que capturar | Arquivo |
 |-----------|----------------|---------|
