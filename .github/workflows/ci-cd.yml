@@ -1,0 +1,165 @@
+name: CI/CD - EnergiaApi
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # ---------------------------------------------------------------- 1) BUILD + TESTES
+  build-test:
+    name: Build e testes automatizados
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build (Release)
+        run: dotnet build --no-restore -c Release
+
+      - name: Testes (xUnit)
+        run: dotnet test --no-build -c Release --logger "trx;LogFileName=test-results.trx" --results-directory ./test-results
+
+      - name: Publicar relatorio de testes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ./test-results
+
+  # ---------------------------------------------------------------- 2) IMAGEM DOCKER
+  image:
+    name: Build e push da imagem (GHCR)
+    needs: build-test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # GHCR exige nome de repositorio em minusculas.
+      - name: Definir tags da imagem
+        id: meta
+        run: |
+          REPO="${GITHUB_REPOSITORY,,}"
+          echo "image=ghcr.io/${REPO}:${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          echo "latest=ghcr.io/${REPO}:latest" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build e push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: EnergiaApi.Api/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}
+            ${{ steps.meta.outputs.latest }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ---------------------------------------------------------------- 3) DEPLOY STAGING
+  deploy-staging:
+    name: Deploy em STAGING
+    needs: image
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: http://localhost:8081/swagger
+    permissions:
+      contents: read
+      packages: read
+    env:
+      API_IMAGE: ${{ needs.image.outputs.image }}
+      APP_VERSION: ${{ github.sha }}
+      # Se os secrets do environment estiverem configurados eles vencem;
+      # senao cai no valor de .env.staging e o pipeline roda igual.
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD || 'Energia@2026!' }}
+      JWT_KEY: ${{ secrets.JWT_KEY || 'chave-staging-com-no-minimo-32-caracteres-aqui!!' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Subir stack de staging (API + SQL Server)
+        run: |
+          docker compose --env-file .env.staging -p energia-staging pull api
+          docker compose --env-file .env.staging -p energia-staging up -d --no-build
+          docker compose --env-file .env.staging -p energia-staging ps
+
+      - name: Smoke test do deploy
+        run: bash scripts/smoke-test.sh http://localhost:8081
+
+      - name: Logs da aplicacao (evidencia)
+        if: always()
+        run: docker compose --env-file .env.staging -p energia-staging logs --tail=50
+
+      - name: Derrubar ambiente efemero
+        if: always()
+        run: docker compose --env-file .env.staging -p energia-staging down -v
+
+  # ---------------------------------------------------------------- 4) DEPLOY PRODUCAO
+  deploy-production:
+    name: Deploy em PRODUCAO
+    needs: [image, deploy-staging]
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: http://localhost:8082/health
+    permissions:
+      contents: read
+      packages: read
+    env:
+      API_IMAGE: ${{ needs.image.outputs.image }}
+      APP_VERSION: ${{ github.sha }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD || 'Energia@2026!' }}
+      JWT_KEY: ${{ secrets.JWT_KEY || 'chave-producao-com-no-minimo-32-caracteres-aqui!!' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Subir stack de producao (mesma imagem aprovada em staging)
+        run: |
+          docker compose --env-file .env.production -p energia-prod pull api
+          docker compose --env-file .env.production -p energia-prod up -d --no-build
+          docker compose --env-file .env.production -p energia-prod ps
+
+      - name: Smoke test do deploy
+        run: bash scripts/smoke-test.sh http://localhost:8082
+
+      - name: Logs da aplicacao (evidencia)
+        if: always()
+        run: docker compose --env-file .env.production -p energia-prod logs --tail=50
+
+      - name: Derrubar ambiente efemero
+        if: always()
+        run: docker compose --env-file .env.production -p energia-prod down -v

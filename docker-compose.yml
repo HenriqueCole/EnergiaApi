@@ -1,0 +1,55 @@
+# Orquestracao do ambiente: API + banco, em rede propria, com volume e variaveis.
+# Um unico compose serve os tres ambientes; o que muda vem do --env-file.
+#   dev     -> docker compose --env-file .env up -d --build
+#   staging -> docker compose --env-file .env.staging -p energia-staging up -d
+#   prod    -> docker compose --env-file .env.production -p energia-prod up -d
+
+services:
+  mssql:
+    image: mcr.microsoft.com/azure-sql-edge:latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD no arquivo .env}
+    ports:
+      - "${DB_PORT:-1433}:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+    networks:
+      - energia-net
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 1 bash -c '</dev/tcp/localhost/1433' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  api:
+    # image = tag publicada no GHCR quando o pipeline faz o deploy;
+    # build  = usado apenas no ambiente local (docker compose up --build).
+    image: ${API_IMAGE:-energiaapi:local}
+    build:
+      context: .
+      dockerfile: EnergiaApi.Api/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_URLS: http://+:8080
+      APP_VERSION: ${APP_VERSION:-local}
+      ConnectionStrings__DefaultConnection: "Server=mssql,1433;Database=${DB_NAME:-EnergiaDb};User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=true"
+      Jwt__Key: ${JWT_KEY:?defina JWT_KEY no arquivo .env}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    depends_on:
+      mssql:
+        condition: service_healthy
+    networks:
+      - energia-net
+    restart: unless-stopped
+    # ponytail: sem healthcheck de container aqui - a imagem aspnet:8.0 nao traz
+    # curl/wget. Quem valida a subida e o scripts/smoke-test.sh (host/pipeline).
+
+volumes:
+  mssql-data:
+
+networks:
+  energia-net:
+    driver: bridge

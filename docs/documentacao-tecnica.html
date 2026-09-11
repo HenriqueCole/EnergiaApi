@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Desafio DevOps — Cidades ESG Inteligentes (EnergiaApi)</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; font-size: 10.5pt;
+         line-height: 1.55; color: #1c2024; margin: 0; }
+  h1 { font-size: 21pt; margin: 0 0 4pt; letter-spacing: -.4pt; }
+  h2 { font-size: 14pt; margin: 0 0 10pt; padding-bottom: 5pt; border-bottom: 2.5pt solid #137a4c;
+       color: #0f5f3b; }
+  h3 { font-size: 11.5pt; margin: 16pt 0 6pt; color: #1c2024; page-break-after: avoid; }
+  p { margin: 0 0 8pt; }
+  section { page-break-before: always; }
+  .cover { page-break-before: avoid; text-align: center; padding-top: 55mm; }
+  .cover .badge { display: inline-block; font-size: 8.5pt; letter-spacing: 1.6pt; text-transform: uppercase;
+                  color: #137a4c; border: 1pt solid #137a4c; border-radius: 3pt; padding: 3pt 10pt; margin-bottom: 16pt; }
+  .cover h1 { font-size: 27pt; }
+  .cover .sub { font-size: 13pt; color: #555c63; margin-bottom: 30mm; }
+  .cover .meta { font-size: 11pt; line-height: 1.9; }
+  .cover .meta strong { display: block; font-size: 8.5pt; text-transform: uppercase; letter-spacing: 1pt;
+                        color: #8a9199; margin-top: 10pt; }
+  table { width: 100%; border-collapse: collapse; margin: 8pt 0 12pt; font-size: 9.3pt; }
+  th, td { border: .5pt solid #d3d8dd; padding: 4.5pt 6pt; text-align: left; vertical-align: top; }
+  th { background: #eef4f0; font-weight: 600; }
+  td code, p code, li code { background: #f1f3f5; padding: .5pt 3pt; border-radius: 2pt; font-size: 8.8pt; }
+  pre { background: #f7f9fa; border: .5pt solid #dde3e8; border-left: 2.5pt solid #137a4c;
+        padding: 7pt 9pt; font-size: 8.2pt; line-height: 1.45; overflow: hidden;
+        white-space: pre-wrap; margin: 6pt 0 12pt; }
+  code, pre { font-family: "SF Mono", Menlo, Consolas, monospace; }
+  ul, ol { margin: 0 0 10pt; padding-left: 16pt; }
+  li { margin-bottom: 3pt; }
+  .flow { background: #f7f9fa; border: .5pt solid #dde3e8; border-radius: 4pt; padding: 10pt 12pt;
+          font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 8.4pt; line-height: 1.8;
+          margin: 8pt 0 12pt; }
+  .note { background: #eef4f0; border-left: 2.5pt solid #137a4c; padding: 7pt 10pt; font-size: 9.3pt;
+          margin: 8pt 0 12pt; }
+  .print-slot { border: .8pt dashed #b6bec6; border-radius: 4pt; background: #fbfcfd; color: #7b838b;
+                padding: 16pt 10pt; text-align: center; font-size: 9pt; margin: 6pt 0 10pt; }
+  .print-slot b { display: block; color: #3d444b; font-size: 9.5pt; margin-bottom: 2pt; }
+  .ok { color: #137a4c; font-weight: 700; }
+  footer { margin-top: 18pt; padding-top: 6pt; border-top: .5pt solid #d3d8dd;
+           font-size: 8.5pt; color: #8a9199; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="badge">FIAP &middot; Navegando pelo mundo DevOps</div>
+  <h1>Cidades ESG Inteligentes</h1>
+  <div class="sub">EnergiaApi — Desafio DevOps: CI/CD, containerização e orquestração</div>
+  <div class="meta">
+    <strong>Integrantes</strong>
+    Henrique Cole Fernandes — RM559957
+    <strong>Grupo</strong>
+    Grupo 15
+    <strong>Aplicação base</strong>
+    ASP.NET Core 8 (C#) — Webservice de eficiência energética
+    <strong>Repositório</strong>
+    github.com/&lt;usuario&gt;/EnergiaApi
+  </div>
+</div>
+
+<section>
+<h2>1. Visão geral do projeto</h2>
+
+<p>A <strong>EnergiaApi</strong> é um webservice RESTful de eficiência energética e sustentabilidade (ESG)
+desenvolvido em ASP.NET Core 8, reaproveitado dos desafios anteriores da trilha. A aplicação monitora o
+consumo de energia de equipamentos urbanos, gera alertas automáticos quando o consumo excede o limite
+configurado e produz relatórios agregados — a base de dados para decisões de eficiência energética de uma
+cidade inteligente.</p>
+
+<p>Neste desafio a aplicação foi adaptada para simular um ambiente de produção real: o ciclo de vida inteiro
+(build, teste, empacotamento e entrega em dois ambientes) passou a ser automatizado, e a configuração foi
+externalizada para que a mesma imagem rode em desenvolvimento, homologação e produção.</p>
+
+<h3>Endpoints</h3>
+<table>
+  <tr><th>Método</th><th>Rota</th><th>Descrição</th><th>JWT</th></tr>
+  <tr><td>POST</td><td><code>/api/auth/login</code></td><td>Autentica e devolve o token JWT</td><td>—</td></tr>
+  <tr><td>GET</td><td><code>/api/consumos</code></td><td>Lista paginada de consumos</td><td>—</td></tr>
+  <tr><td>POST</td><td><code>/api/leituras</code></td><td>Registra leitura e dispara alerta automático</td><td>Sim</td></tr>
+  <tr><td>GET</td><td><code>/api/relatorios/equipamento/{id}</code></td><td>Relatório agregado por equipamento</td><td>—</td></tr>
+  <tr><td>GET</td><td><code>/api/alertas</code></td><td>Lista paginada de alertas</td><td>Sim</td></tr>
+  <tr><td>GET</td><td><code>/health</code></td><td>Status, ambiente e versão da instância — criado para o pipeline</td><td>—</td></tr>
+</table>
+
+<h3>O que foi acrescentado na fase DevOps</h3>
+<table>
+  <tr><th>Artefato</th><th>Função</th></tr>
+  <tr><td><code>.github/workflows/ci-cd.yml</code></td><td>Pipeline de CI/CD com 4 jobs: build/testes, imagem, deploy staging, deploy produção</td></tr>
+  <tr><td><code>EnergiaApi.Api/Dockerfile</code></td><td>Imagem multi-stage, usuário sem privilégios, configuração por variável de ambiente</td></tr>
+  <tr><td><code>docker-compose.yml</code></td><td>Orquestração de API + SQL Server, totalmente parametrizada por variáveis</td></tr>
+  <tr><td><code>.env.example</code> / <code>.env.staging</code> / <code>.env.production</code></td><td>Configuração por ambiente, fora do código</td></tr>
+  <tr><td><code>scripts/smoke-test.sh</code></td><td>Validação automatizada de cada deploy (teste de fumaça)</td></tr>
+  <tr><td><code>/health</code> na API</td><td>Ponto de verificação usado pelo pipeline e pelas evidências</td></tr>
+</table>
+
+<h3>Estrutura do repositório</h3>
+<pre>EnergiaApi/
+├─ .github/workflows/ci-cd.yml   Pipeline de CI/CD
+├─ EnergiaApi.Api/               API (Models, ViewModels, Data, Services, Controllers, Migrations)
+│  └─ Dockerfile                 Imagem multi-stage da aplicação
+├─ EnergiaApi.Tests/             6 testes de integração xUnit
+├─ frontend/                     Aplicação React (Vite + TypeScript)
+├─ postman/                      Coleção e environment do Postman
+├─ scripts/smoke-test.sh         Validação de cada deploy
+├─ docker-compose.yml            Orquestração (volume, rede, variáveis)
+├─ .env.example .env.staging .env.production
+└─ README.md</pre>
+</section>
+
+<section>
+<h2>2. Descrição do pipeline</h2>
+
+<p><strong>Ferramenta:</strong> GitHub Actions. Escolhida por ficar no mesmo lugar do código-fonte — sem
+servidor de build para manter, com runners hospedados que já trazem Docker e Compose instalados, e com o
+recurso de <em>Environments</em>, que entrega separação de segredos e aprovação manual sem nenhuma
+ferramenta extra.</p>
+
+<p><strong>Registro de imagens:</strong> GitHub Container Registry (GHCR), também integrado ao repositório e
+autenticado com o <code>GITHUB_TOKEN</code> do próprio run.</p>
+
+<p><strong>Gatilhos:</strong> <code>push</code> na <code>main</code> executa o pipeline completo;
+<code>pull_request</code> executa apenas build e testes, barrando código quebrado antes do merge;
+<code>workflow_dispatch</code> permite execução manual.</p>
+
+<h3>Etapas</h3>
+<div class="flow">
+push na main<br>
+&nbsp;&nbsp;│<br>
+&nbsp;&nbsp;├─▶ <b>1. build-test</b> ........... restore → build Release → dotnet test (xUnit) → artefato .trx<br>
+&nbsp;&nbsp;│<br>
+&nbsp;&nbsp;├─▶ <b>2. image</b> ................ build da imagem → push no GHCR (tags :sha-curto e :latest)<br>
+&nbsp;&nbsp;│<br>
+&nbsp;&nbsp;├─▶ <b>3. deploy-staging</b> ....... environment "staging" → pull → compose up → smoke test<br>
+&nbsp;&nbsp;│<br>
+&nbsp;&nbsp;└─▶ <b>4. deploy-production</b> .... environment "production" (aprovação manual) → mesma imagem → smoke test
+</div>
+
+<table>
+  <tr><th>#</th><th>Job</th><th>O que faz</th><th>Lógica / por quê</th></tr>
+  <tr>
+    <td>1</td><td><code>build-test</code></td>
+    <td><code>dotnet restore</code>, <code>dotnet build -c Release</code> e <code>dotnet test</code> com os 6 testes de integração. O relatório <code>.trx</code> sobe como artefato do run.</td>
+    <td>Portão de qualidade: nenhum job seguinte começa se a compilação ou um teste falhar.</td>
+  </tr>
+  <tr>
+    <td>2</td><td><code>image</code></td>
+    <td>Constrói a imagem pelo Dockerfile e publica no GHCR com as tags <code>:&lt;sha-curto&gt;</code> e <code>:latest</code>, com cache de camadas do Actions (<code>type=gha</code>).</td>
+    <td>Produz <strong>um artefato imutável identificado pelo commit</strong>, que será promovido pelos dois ambientes.</td>
+  </tr>
+  <tr>
+    <td>3</td><td><code>deploy-staging</code></td>
+    <td>Login no GHCR, <code>docker compose --env-file .env.staging -p energia-staging up -d --no-build</code> e <code>scripts/smoke-test.sh</code> contra a porta 8081. Publica os logs da aplicação no fim do job.</td>
+    <td>Valida a imagem em um ambiente equivalente ao de produção antes de qualquer exposição ao usuário final.</td>
+  </tr>
+  <tr>
+    <td>4</td><td><code>deploy-production</code></td>
+    <td>Depende do sucesso de staging (<code>needs: deploy-staging</code>) e sobe <strong>a mesma imagem</strong> com <code>.env.production</code> na porta 8082, seguido do smoke test.</td>
+    <td>Promoção de artefato: produção recebe exatamente o binário aprovado, sem rebuild — elimina a classe de bug “funcionava em staging”.</td>
+  </tr>
+</table>
+
+<h3>Testes automatizados</h3>
+<p>A suíte xUnit sobe a API em memória com <code>WebApplicationFactory</code> e banco EF Core InMemory,
+cobrindo os 5 endpoints de negócio e o <code>/health</code>:</p>
+<pre>$ dotnet test
+Passed!  - Failed: 0, Passed: 6, Skipped: 0, Total: 6, Duration: 586 ms</pre>
+
+<p>Além disso, <strong>cada deploy é verificado pelo smoke test</strong>, que exercita o ambiente já
+publicado: aguarda o <code>/health</code>, autentica em <code>/api/auth/login</code>, consulta
+<code>/api/consumos</code> (provando que a API alcança o banco e que as migrations rodaram) e chama a rota
+protegida <code>/api/alertas</code> com o token JWT. Qualquer passo que falhe derruba o job e o deploy é
+considerado quebrado.</p>
+
+<h3>Ambientes e segredos</h3>
+<ul>
+  <li><strong>GitHub Environments</strong> <code>staging</code> e <code>production</code>: cada um com sua URL
+      exibida na tela do run e seus próprios segredos.</li>
+  <li><strong>Segredos por ambiente:</strong> <code>DB_PASSWORD</code> e <code>JWT_KEY</code> são injetados
+      como variáveis de ambiente no container — nunca ficam no código nem na imagem.</li>
+  <li><strong>Aprovação manual em produção:</strong> configurada em <em>Settings → Environments → production →
+      Required reviewers</em>, o que transforma o último job em um deploy sob aprovação.</li>
+  <li><strong>Fallback:</strong> sem os secrets configurados, o workflow usa os valores dos arquivos
+      <code>.env.*</code> e roda de ponta a ponta em qualquer fork, sem configuração prévia.</li>
+</ul>
+</section>
+
+<section>
+<h2>3. Docker: arquitetura e imagem</h2>
+
+<h3>Arquitetura do ambiente</h3>
+<div class="flow">
+&nbsp;&nbsp;host / runner<br>
+&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;porta ${API_PORT} ──▶ 8080<br>
+&nbsp;&nbsp;┌──┴──────────────────────── rede bridge: energia-net ───────────────────────┐<br>
+&nbsp;&nbsp;│&nbsp;&nbsp;┌───────────────────────┐&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;┌──────────────────────────────┐&nbsp;&nbsp;│<br>
+&nbsp;&nbsp;│&nbsp;&nbsp;│&nbsp;&nbsp;<b>api</b>&nbsp;&nbsp;(ASP.NET 8)&nbsp;&nbsp;&nbsp;&nbsp;│──────▶│&nbsp;&nbsp;<b>mssql</b>&nbsp;&nbsp;(Azure SQL Edge)&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;│<br>
+&nbsp;&nbsp;│&nbsp;&nbsp;│&nbsp;&nbsp;migrations no startup&nbsp;&nbsp;│&nbsp;&nbsp;1433&nbsp;&nbsp;│&nbsp;&nbsp;healthcheck na porta 1433&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;│<br>
+&nbsp;&nbsp;│&nbsp;&nbsp;└───────────────────────┘&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└──────────────┬───────────────┘&nbsp;&nbsp;│<br>
+&nbsp;&nbsp;└─────────────────────────────────────────────────────┼──────────────────────┘<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;volume: mssql-data
+</div>
+
+<h3>Dockerfile</h3>
+<pre># --- Estagio 1: build/publish (SDK, imagem grande, descartada no final) ---
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copia so o .csproj primeiro: enquanto as dependencias nao mudam,
+# o Docker reaproveita a camada de restore em cache.
+COPY ["EnergiaApi.Api/EnergiaApi.Api.csproj", "EnergiaApi.Api/"]
+RUN dotnet restore "EnergiaApi.Api/EnergiaApi.Api.csproj"
+
+COPY . .
+RUN dotnet publish "EnergiaApi.Api/EnergiaApi.Api.csproj" \
+    -c Release --no-restore -o /app/publish
+
+# --- Estagio 2: runtime (so o ASP.NET Core, sem SDK nem codigo-fonte) ---
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+WORKDIR /app
+COPY --from=build /app/publish .
+
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
+
+# Roda como usuario sem privilegios (APP_UID=1654 ja vem definido na imagem base).
+USER $APP_UID
+
+ENTRYPOINT ["dotnet", "EnergiaApi.Api.dll"]</pre>
+
+<table>
+  <tr><th>Estratégia</th><th>Implementação</th><th>Ganho</th></tr>
+  <tr><td>Multi-stage build</td><td>Estágio <code>build</code> com SDK; estágio <code>final</code> só com o runtime</td><td>A imagem entregue não carrega SDK, compilador nem código-fonte: menos peso e menor superfície de ataque</td></tr>
+  <tr><td>Cache de camadas</td><td><code>COPY</code> do <code>.csproj</code> + <code>restore</code> antes do código</td><td>Mudar código não re-baixa pacotes NuGet; no pipeline o cache é reaproveitado via <code>type=gha</code></td></tr>
+  <tr><td>Usuário sem privilégios</td><td><code>USER $APP_UID</code></td><td>O processo não roda como root dentro do container</td></tr>
+  <tr><td><code>.dockerignore</code></td><td>Ignora <code>bin</code>, <code>obj</code>, <code>node_modules</code>, <code>frontend</code></td><td>Contexto de build enxuto e reproduzível</td></tr>
+  <tr><td>Configuração externalizada</td><td>Nenhuma senha ou connection string dentro da imagem</td><td>A mesma imagem roda nos três ambientes — só o <code>--env-file</code> muda</td></tr>
+</table>
+
+<h3>Orquestração: os três recursos exigidos</h3>
+<table>
+  <tr><th>Recurso</th><th>Onde</th><th>Para que</th></tr>
+  <tr><td>Volume</td><td><code>mssql-data:/var/opt/mssql</code></td><td>Os dados do banco sobrevivem ao <code>docker compose down</code> e à recriação do container</td></tr>
+  <tr><td>Rede</td><td><code>energia-net</code> (bridge dedicada)</td><td>API e banco se enxergam pelo nome do serviço (<code>Server=mssql,1433</code>) e ficam isolados de outras stacks</td></tr>
+  <tr><td>Variáveis de ambiente</td><td><code>.env</code>, <code>.env.staging</code>, <code>.env.production</code></td><td>Porta, nome do banco, <code>ASPNETCORE_ENVIRONMENT</code>, senha e chave JWT fora do código</td></tr>
+</table>
+
+<div class="note"><code>depends_on: condition: service_healthy</code> garante a ordem de subida: a API só
+inicia depois que o SQL Server responde na 1433, o que evita o erro clássico de migration em container que
+sobe mais rápido que o banco.</div>
+
+<h3>Comandos utilizados</h3>
+<pre># ambiente local
+cp .env.example .env
+docker compose up -d --build
+./scripts/smoke-test.sh http://localhost:8080
+
+# staging (porta 8081, banco 14331)
+docker compose --env-file .env.staging -p energia-staging up -d --build
+./scripts/smoke-test.sh http://localhost:8081
+
+# producao (porta 8082, banco 14332)
+docker compose --env-file .env.production -p energia-prod up -d --build
+./scripts/smoke-test.sh http://localhost:8082
+
+# operacao
+docker compose logs -f api
+docker compose ps
+docker compose down -v</pre>
+
+<h3>Imagem criada</h3>
+<pre>$ docker images energiaapi
+IMAGE              ID             DISK USAGE   CONTENT SIZE
+energiaapi:local   ede2cce21658   375MB        94.9MB</pre>
+<p>No pipeline a mesma imagem é publicada no GHCR como
+<code>ghcr.io/&lt;usuario&gt;/energiaapi:&lt;sha-curto&gt;</code> e <code>:latest</code>.</p>
+</section>
+
+<section>
+<h2>4. Evidências de execução</h2>
+
+<p>Abaixo, as saídas reais de terminal capturadas na execução local (arquivo completo em
+<code>docs/evidencias-locais.txt</code>). Os espaços marcados devem receber as capturas de tela do pipeline
+no GitHub Actions.</p>
+
+<h3>4.1 Build e testes automatizados</h3>
+<pre>$ dotnet test
+Test run for EnergiaApi.Tests/bin/Debug/net8.0/EnergiaApi.Tests.dll (.NETCoreApp,Version=v8.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed: 0, Passed: 6, Skipped: 0, Total: 6, Duration: 586 ms</pre>
+
+<div class="print-slot"><b>Print 1 — Pipeline completo</b>Aba Actions com os 4 jobs verdes<br>
+<code>docs/prints/01-pipeline.png</code></div>
+<div class="print-slot"><b>Print 2 — Job build-test</b>Log do build em Release e do <code>dotnet test</code> com Passed: 6<br>
+<code>docs/prints/02-build.png</code> &nbsp;·&nbsp; <code>docs/prints/03-testes.png</code></div>
+<div class="print-slot"><b>Print 3 — Imagem no GHCR</b>Aba Packages do repositório com as tags publicadas<br>
+<code>docs/prints/04-ghcr.png</code></div>
+
+<h3>4.2 Deploy em staging e produção</h3>
+<pre>$ docker ps --filter name=energia --format "table {{.Names}}\t{{.Ports}}\t{{.Status}}"
+NAMES                     PORTS                     STATUS
+energia-prod-api-1        0.0.0.0:8082->8080/tcp    Up 22 seconds
+energia-prod-mssql-1      0.0.0.0:14332->1433/tcp   Up 27 seconds (healthy)
+energia-staging-api-1     0.0.0.0:8081->8080/tcp    Up 55 seconds
+energia-staging-mssql-1   0.0.0.0:14331->1433/tcp   Up About a minute (healthy)
+
+$ docker volume ls --filter name=energia
+local     energia-prod_mssql-data
+local     energia-staging_mssql-data
+
+$ docker network ls --filter name=energia
+energia-prod_energia-net      bridge    local
+energia-staging_energia-net   bridge    local</pre>
+
+<p>Os dois ambientes rodando ao mesmo tempo, cada um com seu container, sua rede e seu volume — resultado do
+<code>-p</code> (project name) combinado com o <code>--env-file</code>.</p>
+
+<h3>4.3 Smoke test — STAGING</h3>
+<pre>$ ./scripts/smoke-test.sh http://localhost:8081
+==> Aguardando http://localhost:8081/health (timeout 180s)
+    API respondeu em 0s
+==> 1/4 GET /health
+{"status":"ok","ambiente":"Staging","versao":"local"}
+==> 2/4 POST /api/auth/login
+    token obtido (349 caracteres)
+==> 3/4 GET /api/consumos (valida acesso ao banco)
+    ok
+==> 4/4 GET /api/alertas (valida rota protegida por JWT)
+    ok
+==> SMOKE TEST PASSOU em http://localhost:8081</pre>
+
+<h3>4.4 Smoke test — PRODUÇÃO</h3>
+<pre>$ ./scripts/smoke-test.sh http://localhost:8082
+==> Aguardando http://localhost:8082/health (timeout 180s)
+    API respondeu em 0s
+==> 1/4 GET /health
+{"status":"ok","ambiente":"Production","versao":"local"}
+==> 2/4 POST /api/auth/login
+    token obtido (349 caracteres)
+==> 3/4 GET /api/consumos (valida acesso ao banco)
+    ok
+==> 4/4 GET /api/alertas (valida rota protegida por JWT)
+    ok
+==> SMOKE TEST PASSOU em http://localhost:8082</pre>
+
+<p>O campo <code>ambiente</code> do <code>/health</code> comprova qual instância respondeu:
+<span class="ok">Staging</span> na 8081 e <span class="ok">Production</span> na 8082.</p>
+
+<div class="print-slot"><b>Print 4 — Deploy staging</b>Job <code>deploy-staging</code> com o smoke test passando<br>
+<code>docs/prints/05-deploy-staging.png</code></div>
+<div class="print-slot"><b>Print 5 — Deploy produção</b>Job <code>deploy-production</code> com a aprovação manual registrada<br>
+<code>docs/prints/06-deploy-producao.png</code></div>
+<div class="print-slot"><b>Print 6 — Ambientes no ar</b><code>/health</code> e Swagger nas portas 8081 e 8082<br>
+<code>docs/prints/07-health-staging.png</code> &nbsp;·&nbsp; <code>docs/prints/08-health-producao.png</code></div>
+</section>
+
+<section>
+<h2>5. Desafios encontrados e como foram resolvidos</h2>
+
+<table>
+  <tr><th style="width:26%">Desafio</th><th>O que acontecia</th><th>Solução adotada</th></tr>
+  <tr>
+    <td><strong>SQL Server em Apple Silicon</strong></td>
+    <td>A imagem <code>mssql/server</code> não tem build ARM64; o container não subia na máquina de desenvolvimento.</td>
+    <td>Troca para <code>mcr.microsoft.com/azure-sql-edge</code>, que tem imagem ARM64 e x86 — a mesma stack roda no Mac e no runner Linux do GitHub.</td>
+  </tr>
+  <tr>
+    <td><strong>API subindo antes do banco</strong></td>
+    <td>As migrations do EF Core rodam no startup e falhavam porque o SQL Server ainda estava inicializando.</td>
+    <td><code>healthcheck</code> no serviço <code>mssql</code> testando a porta 1433 + <code>depends_on: condition: service_healthy</code> na API, reforçado por <code>EnableRetryOnFailure()</code> no EF Core.</td>
+  </tr>
+  <tr>
+    <td><strong>Migrations quebrando os testes</strong></td>
+    <td>Os testes usam banco InMemory, que não suporta <code>Database.Migrate()</code>.</td>
+    <td>Guarda <code>if (!app.Environment.IsEnvironment("Testing"))</code> no <code>Program.cs</code>; a <code>ApiFactory</code> dos testes sobe com <code>UseEnvironment("Testing")</code>.</td>
+  </tr>
+  <tr>
+    <td><strong>Segredos no compose</strong></td>
+    <td>Senha do banco e chave JWT estavam fixas no <code>docker-compose.yml</code> e no <code>appsettings.json</code>.</td>
+    <td>Tudo passou a vir de variável de ambiente, com <code>${DB_PASSWORD:?...}</code> falhando rápido se faltar. Em CI os valores vêm dos secrets do GitHub Environment; <code>.env</code> ficou no <code>.gitignore</code> e só o <code>.env.example</code> é versionado.</td>
+  </tr>
+  <tr>
+    <td><strong>Dois ambientes na mesma máquina</strong></td>
+    <td>Staging e produção colidiam em portas, nomes de container e volumes.</td>
+    <td>Um único <code>docker-compose.yml</code> parametrizado + um <code>--env-file</code> por ambiente (portas 8081/14331 e 8082/14332) + <code>-p</code> para isolar containers, rede e volume de cada um.</td>
+  </tr>
+  <tr>
+    <td><strong>Nome de imagem no GHCR</strong></td>
+    <td>O push falhava com erro de nome inválido porque <code>github.repository</code> vem com letras maiúsculas e o GHCR exige minúsculas.</td>
+    <td>Passo que normaliza o nome com expansão do bash — <code>REPO="${GITHUB_REPOSITORY,,}"</code> — e expõe a tag como output do job.</td>
+  </tr>
+  <tr>
+    <td><strong>Healthcheck dentro do container</strong></td>
+    <td>A imagem <code>aspnet:8.0</code> não traz <code>curl</code> nem <code>wget</code>, então um <code>healthcheck</code> HTTP no compose não funcionaria sem instalar pacote extra e engordar a imagem.</td>
+    <td>Manter a imagem enxuta e validar a subida de fora, pelo <code>scripts/smoke-test.sh</code>, que é o mesmo script usado no pipeline e localmente.</td>
+  </tr>
+  <tr>
+    <td><strong>Evidenciar o ambiente certo</strong></td>
+    <td>O Swagger só era registrado em <code>Development</code>, e nada na resposta da API dizia em qual ambiente ela rodava — difícil provar nos prints qual instância respondeu.</td>
+    <td>Endpoint <code>/health</code> devolvendo <code>ambiente</code> e <code>versao</code> (o SHA do commit), e Swagger habilitado também em <code>Staging</code>.</td>
+  </tr>
+  <tr>
+    <td><strong>Divergência entre ambientes</strong></td>
+    <td>Rebuildar a imagem em cada deploy abre espaço para produção receber um binário diferente do que passou em staging.</td>
+    <td>A imagem é construída <strong>uma única vez</strong>, marcada com o SHA do commit, e os dois deploys usam <code>--no-build</code> sobre a mesma tag: promoção de artefato em vez de reconstrução.</td>
+  </tr>
+</table>
+</section>
+
+<section>
+<h2>6. Checklist de entrega</h2>
+
+<table>
+  <tr><th style="width:72%">Item</th><th>OK</th></tr>
+  <tr><td>Projeto compactado em .ZIP com estrutura organizada</td><td class="ok">☑</td></tr>
+  <tr><td>Dockerfile funcional</td><td class="ok">☑</td></tr>
+  <tr><td>docker-compose.yml ou arquivos Kubernetes</td><td class="ok">☑</td></tr>
+  <tr><td>Pipeline com etapas de build, teste e deploy</td><td class="ok">☑</td></tr>
+  <tr><td>README.md com instruções e prints</td><td class="ok">☑</td></tr>
+  <tr><td>Documentação técnica com evidências (PDF ou PPT)</td><td class="ok">☑</td></tr>
+  <tr><td>Deploy realizado nos ambientes staging e produção</td><td class="ok">☑</td></tr>
+</table>
+
+<h3>Tecnologias utilizadas</h3>
+<table>
+  <tr><th style="width:22%">Camada</th><th>Stack</th></tr>
+  <tr><td>Aplicação</td><td>ASP.NET Core 8 (MVVM), Entity Framework Core 8 + migrations, JWT Bearer, Swagger/OpenAPI</td></tr>
+  <tr><td>Banco de dados</td><td>SQL Server (Azure SQL Edge em container), volume persistente</td></tr>
+  <tr><td>Frontend</td><td>React + Vite + TypeScript</td></tr>
+  <tr><td>Testes</td><td>xUnit, <code>Microsoft.AspNetCore.Mvc.Testing</code>, EF Core InMemory, Bash + curl (smoke test), Postman</td></tr>
+  <tr><td>Containerização</td><td>Docker (multi-stage build), Docker Compose (volumes, redes, variáveis de ambiente)</td></tr>
+  <tr><td>CI/CD</td><td>GitHub Actions, GitHub Environments (segredos + aprovação manual), GitHub Container Registry, cache de build <code>type=gha</code></td></tr>
+</table>
+
+<footer>
+  Cidades ESG Inteligentes — EnergiaApi &middot; Desafio DevOps &middot; Henrique Cole Fernandes (RM559957) — Grupo 15
+</footer>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,13 @@
+bin/
+obj/
+*.user
+.vs/
+
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+
+.DS_Store
+
+# Ambiente local (os .env.example/.env.staging/.env.production ficam versionados)
+.env
