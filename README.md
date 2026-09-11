@@ -207,37 +207,72 @@ responde, o que evita aquele erro de migration em container que sobe mais rápid
 
 ## Prints do funcionamento
 
-As execuções do pipeline ficam em
-[github.com/HenriqueCole/EnergiaApi/actions](https://github.com/HenriqueCole/EnergiaApi/actions).
-Uma execução completa, com os quatro jobs verdes, está em
-[actions/runs/34600183571](https://github.com/HenriqueCole/EnergiaApi/actions/runs/34600183571).
+O repositório é público e o histórico de execuções fica aberto, então a evidência aqui é por link em vez de
+captura de tela: [github.com/HenriqueCole/EnergiaApi/actions](https://github.com/HenriqueCole/EnergiaApi/actions).
 
-Para os prints, troque os caminhos abaixo pelas suas capturas. Sugestão de pasta: `docs/prints/`.
+### Pipeline
 
-| Evidência | O que capturar | Arquivo |
-|-----------|----------------|---------|
-| Pipeline completo | Aba Actions com os 4 jobs verdes | `docs/prints/01-pipeline.png` |
-| Etapa de build | Log do job `build-test` com o build em Release | `docs/prints/02-build.png` |
-| Etapa de testes | Log do `dotnet test` com `Passed: 6` | `docs/prints/03-testes.png` |
-| Imagem publicada | Aba Packages do repositório com a imagem no GHCR | `docs/prints/04-ghcr.png` |
-| Deploy staging | Job `deploy-staging` com o smoke test passando | `docs/prints/05-deploy-staging.png` |
-| Deploy produção | Job `deploy-production`, com a aprovação manual registrada | `docs/prints/06-deploy-producao.png` |
-| Staging no ar | `GET /health` na 8081 devolvendo `"ambiente": "Staging"` | `docs/prints/07-health-staging.png` |
-| Produção no ar | `GET /health` na 8082 devolvendo `"ambiente": "Production"` | `docs/prints/08-health-producao.png` |
-| Containers rodando | `docker compose ps` com os dois ambientes ativos | `docs/prints/09-docker-ps.png` |
-| Swagger | Swagger UI listando os endpoints | `docs/prints/10-swagger.png` |
+Execução completa em
+[actions/runs/34600183571](https://github.com/HenriqueCole/EnergiaApi/actions/runs/34600183571):
 
-Os comandos que geram as evidências dos dois ambientes na sua máquina:
+| Job | Resultado | Duração |
+|-----|-----------|---------|
+| Build e testes | success | 38s |
+| Imagem Docker no GHCR | success | 59s |
+| Deploy em staging | success | 46s |
+| Deploy em producao | success | 44s |
+
+As imagens publicadas aparecem na aba Packages do repositório, com uma tag por commit.
+
+### Staging e produção no ar
+
+Os dois ambientes subindo ao mesmo tempo, cada um com container, rede e volume separados:
+
+```
+$ docker ps --filter name=energia --format "table {{.Names}}\t{{.Ports}}\t{{.Status}}"
+NAMES                     PORTS                     STATUS
+energia-prod-api-1        0.0.0.0:8082->8080/tcp    Up 22 seconds
+energia-prod-mssql-1      0.0.0.0:14332->1433/tcp   Up 27 seconds (healthy)
+energia-staging-api-1     0.0.0.0:8081->8080/tcp    Up 55 seconds
+energia-staging-mssql-1   0.0.0.0:14331->1433/tcp   Up About a minute (healthy)
+
+$ curl -s localhost:8081/health
+{"status":"ok","ambiente":"Staging","versao":"local"}
+
+$ curl -s localhost:8082/health
+{"status":"ok","ambiente":"Production","versao":"local"}
+```
+
+O campo `ambiente` mostra qual instância respondeu.
+
+### Smoke test do deploy
+
+```
+$ bash scripts/smoke-test.sh http://localhost:8081
+==> Aguardando http://localhost:8081/health (timeout 180s)
+    API respondeu em 0s
+==> 1/4 GET /health
+{"status":"ok","ambiente":"Staging","versao":"local"}
+==> 2/4 POST /api/auth/login
+    token obtido (349 caracteres)
+==> 3/4 GET /api/consumos (prova que a API alcanca o banco)
+    ok
+==> 4/4 GET /api/alertas (prova que o JWT funciona)
+    ok
+==> SMOKE TEST PASSOU em http://localhost:8081
+```
+
+A saída completa, com os dois ambientes e os testes, está em
+[`docs/evidencias-locais.txt`](docs/evidencias-locais.txt).
+
+Para reproduzir na sua máquina:
 
 ```bash
 docker compose --env-file .env.staging    -p energia-staging up -d --build
 docker compose --env-file .env.production -p energia-prod    up -d --build
-docker ps --filter name=energia --format 'table {{.Names}}\t{{.Ports}}\t{{.Status}}'
-curl -s localhost:8081/health   # {"status":"ok","ambiente":"Staging", ...}
-curl -s localhost:8082/health   # {"status":"ok","ambiente":"Production", ...}
+curl -s localhost:8081/health
+curl -s localhost:8082/health
 ```
-
-A saída completa de uma execução real está em [`docs/evidencias-locais.txt`](docs/evidencias-locais.txt).
 
 ## Tecnologias utilizadas
 
@@ -289,6 +324,7 @@ EnergiaApi/
 ├─ frontend/                     Aplicação React (Vite e TypeScript)
 ├─ postman/                      Coleção e environment do Postman
 ├─ scripts/smoke-test.sh         Validação de cada deploy
+├─ docs/                         Documentação técnica em PDF e evidências de execução
 ├─ docker-compose.yml            Orquestração da API com o SQL Server
 ├─ .env.example                  Modelo de variáveis para rodar local
 ├─ .env.staging                  Variáveis do ambiente de homologação

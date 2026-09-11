@@ -37,9 +37,6 @@
           margin: 8pt 0 12pt; }
   .note { background: #eef4f0; border-left: 2.5pt solid #137a4c; padding: 7pt 10pt; font-size: 9.3pt;
           margin: 8pt 0 12pt; }
-  .print-slot { border: .8pt dashed #b6bec6; border-radius: 4pt; background: #fbfcfd; color: #7b838b;
-                padding: 16pt 10pt; text-align: center; font-size: 9pt; margin: 6pt 0 10pt; }
-  .print-slot b { display: block; color: #3d444b; font-size: 9.5pt; margin-bottom: 2pt; }
   .ok { color: #137a4c; font-weight: 700; }
   footer { margin-top: 18pt; padding-top: 6pt; border-top: .5pt solid #d3d8dd;
            font-size: 8.5pt; color: #8a9199; }
@@ -278,12 +275,11 @@ energiaapi:local   ede2cce21658   375MB        94.9MB</pre>
 <section>
 <h2>4. Evidências</h2>
 
-<p>O pipeline roda de verdade no GitHub Actions, em
-<code>github.com/HenriqueCole/EnergiaApi/actions</code>. Uma execução completa, com os quatro jobs verdes,
-está no run <code>34600183571</code>.</p>
+<p>O repositório é público e o histórico de execuções fica aberto, então a evidência do pipeline está por
+link e não por captura de tela: <code>github.com/HenriqueCole/EnergiaApi/actions</code>.</p>
 
-<p>Abaixo estão as saídas de terminal da execução local. O arquivo completo está em
-<code>docs/evidencias-locais.txt</code>. Os espaços tracejados são para as capturas de tela do pipeline.</p>
+<p>As saídas de terminal abaixo são de uma execução real. O arquivo completo está em
+<code>docs/evidencias-locais.txt</code>, dentro do projeto.</p>
 
 <h3>4.1 Build e testes</h3>
 <pre>$ dotnet test
@@ -292,14 +288,19 @@ A total of 1 test files matched the specified pattern.
 
 Passed!  - Failed: 0, Passed: 6, Skipped: 0, Total: 6, Duration: 586 ms</pre>
 
-<div class="print-slot"><b>Print 1: pipeline completo</b>Aba Actions com os 4 jobs verdes<br>
-<code>docs/prints/01-pipeline.png</code></div>
-<div class="print-slot"><b>Print 2: job build-test</b>Log do build em Release e do <code>dotnet test</code> com Passed: 6<br>
-<code>docs/prints/02-build.png</code> &nbsp;/&nbsp; <code>docs/prints/03-testes.png</code></div>
-<div class="print-slot"><b>Print 3: imagem no GHCR</b>Aba Packages do repositório com as tags publicadas<br>
-<code>docs/prints/04-ghcr.png</code></div>
+<h3>4.2 O pipeline rodando</h3>
+<p>Run <code>34600183571</code>, disparado por um push na <code>main</code>. Os quatro jobs passaram:</p>
+<table>
+  <tr><th>Job</th><th>Resultado</th><th>Duração</th></tr>
+  <tr><td><code>build-test</code></td><td class="ok">success</td><td>38s</td></tr>
+  <tr><td><code>image</code></td><td class="ok">success</td><td>59s</td></tr>
+  <tr><td><code>deploy-staging</code></td><td class="ok">success</td><td>46s</td></tr>
+  <tr><td><code>deploy-production</code></td><td class="ok">success</td><td>44s</td></tr>
+</table>
+<p>O log completo de cada job, incluindo o smoke test de cada ambiente, fica na aba Actions do repositório.
+As imagens publicadas aparecem na aba Packages, com uma tag por commit.</p>
 
-<h3>4.2 Os dois ambientes rodando</h3>
+<h3>4.3 Os dois ambientes rodando</h3>
 <pre>$ docker ps --filter name=energia --format "table {{.Names}}\t{{.Ports}}\t{{.Status}}"
 NAMES                     PORTS                     STATUS
 energia-prod-api-1        0.0.0.0:8082->8080/tcp    Up 22 seconds
@@ -318,7 +319,7 @@ energia-staging_energia-net   bridge    local</pre>
 <p>Staging e produção no ar ao mesmo tempo, cada um com seu container, sua rede e seu volume. Isso é
 resultado do <code>-p</code>, que define o nome do projeto, combinado com o <code>--env-file</code>.</p>
 
-<h3>4.3 Smoke test em staging</h3>
+<h3>4.4 Smoke test em staging</h3>
 <pre>$ bash scripts/smoke-test.sh http://localhost:8081
 ==> Aguardando http://localhost:8081/health (timeout 180s)
     API respondeu em 0s
@@ -332,7 +333,7 @@ resultado do <code>-p</code>, que define o nome do projeto, combinado com o <cod
     ok
 ==> SMOKE TEST PASSOU em http://localhost:8081</pre>
 
-<h3>4.4 Smoke test em produção</h3>
+<h3>4.5 Smoke test em produção</h3>
 <pre>$ bash scripts/smoke-test.sh http://localhost:8082
 ==> Aguardando http://localhost:8082/health (timeout 180s)
     API respondeu em 0s
@@ -349,12 +350,6 @@ resultado do <code>-p</code>, que define o nome do projeto, combinado com o <cod
 <p>O campo <code>ambiente</code> do <code>/health</code> mostra qual instância respondeu:
 <span class="ok">Staging</span> na 8081 e <span class="ok">Production</span> na 8082.</p>
 
-<div class="print-slot"><b>Print 4: deploy em staging</b>Job <code>deploy-staging</code> com o smoke test passando<br>
-<code>docs/prints/05-deploy-staging.png</code></div>
-<div class="print-slot"><b>Print 5: deploy em produção</b>Job <code>deploy-production</code>, com a aprovação manual registrada<br>
-<code>docs/prints/06-deploy-producao.png</code></div>
-<div class="print-slot"><b>Print 6: ambientes no ar</b><code>/health</code> e Swagger nas portas 8081 e 8082<br>
-<code>docs/prints/07-health-staging.png</code> &nbsp;/&nbsp; <code>docs/prints/08-health-producao.png</code></div>
 </section>
 
 <section>
